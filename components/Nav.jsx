@@ -2,10 +2,19 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { singIn, signOut, useSession, getProviders } from "next-auth/react";
+import { signIn, signOut, useSession, getProviders } from "next-auth/react";
 
 const Nav = () => {
-  const isLoggedIn = true;
+  const { data: session } = useSession();
+  const [providers, setProviders] = useState(null);
+  const [toggleDropdown, setToggleDropdown] = useState(false);
+  useEffect(() => {
+    const getUpProviders = async () => {
+      const response = await getProviders();
+      setProviders(response);
+    };
+    getUpProviders();
+  }, []);
   return (
     <nav className="flex-between w-full mb-16 pt-3">
       <Link href="/" className="flex gap-2 flex-center">
@@ -20,15 +29,94 @@ const Nav = () => {
       </Link>
       {/* Desktop navigation */}
       <div className="sm:flex hidden">
-        {isLoggedIn ? (
+        {session?.user ? (
           <div className="flex gap-3 md:gap-5">
             <Link className="black_btn" href="/create-prompt">
               create prompt
             </Link>
+            <button onClick={signOut} className="outline_btn" type="button">
+              Sign out
+            </button>
+            <Link href="/profile">
+              <Image
+                src={session?.user?.image || "../assets/images/profile.svg"}
+                alt="Profile"
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+            </Link>
           </div>
         ) : (
           <>
-            
+            {providers &&
+              Object.values(providers).map((provider) => (
+                <button
+                  onClick={() => signIn(provider.id)}
+                  className="outline_btn"
+                  type="button"
+                >
+                  Sign in with {provider.name}
+                </button>
+              ))}
+          </>
+        )}
+      </div>
+
+      {/* Mobile navigation */}
+
+      <div className="sm:hidden flex relative">
+        {session?.user ? (
+          <>
+            <Image
+              src={session?.user?.image || "../assets/images/profile.svg"}
+              alt="Profile"
+              width={40}
+              height={40}
+              className="rounded-full"
+              onClick={() => setToggleDropdown((prev) => !prev)}
+            />
+            {toggleDropdown && (
+              <div className="dropdown">
+                <Link
+                  href="/profile"
+                  className="dropdown_link"
+                  onClick={() => setToggleDropdown(() => false)}
+                >
+                  My Profile
+                </Link>
+                <Link
+                  href="/create-prompt"
+                  className="dropdown_link"
+                  onClick={() => setToggleDropdown(() => false)}
+                >
+                  Create Prompt
+                </Link>
+                <button
+                  onClick={() => {
+                    setToggleDropdown(() => false);
+                    signOut();
+                  }}
+                  className="mt-5 w-full black_btn"
+                  type="button"
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {providers &&
+              Object.values(providers).map((provider) => (
+                <button
+                  onClick={() => signIn(provider.id)}
+                  className="black_btn mt-5 w-full"
+                  type="button"
+                >
+                  Sign in with {provider.name}
+                </button>
+              ))}
           </>
         )}
       </div>
